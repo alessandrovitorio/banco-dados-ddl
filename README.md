@@ -1,4 +1,4 @@
-# 🏗️ Aula 3 – DDL (Data Definition Language) no MySQL
+# 🏗️ Aula-2 – DDL (Data Definition Language) no MySQL
 
 ## 1. O que é DDL?
 DDL significa **Data Definition Language** (Linguagem de Definição de Dados).  
