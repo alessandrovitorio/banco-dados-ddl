@@ -14,202 +14,155 @@ DDL significa **Data Definition Language** (Linguagem de Definição de Dados).
 
 ---
 
-## 2. Comando básico de criação de banco
+## 2. Criando o Banco de Dados
 
 ```sql
-CREATE DATABASE netflix_aula
-  DEFAULT CHARACTER SET utf8mb4
-  COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS `netflix_db`
+DEFAULT CHARACTER SET utf8mb4       -- Conjunto de caracteres (aceita emojis e acentos)
+COLLATE utf8mb4_0900_ai_ci;         -- Regras de comparação (case-insensitive)
+````
+
+* **IF NOT EXISTS** → evita erro se o banco já existir.
+* **CHARACTER SET** → define quais caracteres podem ser armazenados.
+* **COLLATE** → define como os textos serão comparados e ordenados.
+
+```sql
+USE `netflix_db`;  -- Seleciona o banco para usar
 ```
-
-### 🔎 Explicando cada parte:
-- **CREATE DATABASE** → cria um novo banco de dados.  
-- **DEFAULT CHARACTER SET utf8mb4** → define o **conjunto de caracteres**.  
-  - `utf8mb4` é a versão mais completa do UTF-8 e aceita **emojis e caracteres especiais**.  
-- **COLLATE utf8mb4_0900_ai_ci** → define as **regras de comparação** entre caracteres.  
-  - *Exemplo:* se `COLLATE` for _ci_ (case-insensitive), `Maria` = `maria`.  
-  - *Se fosse cs (case-sensitive), `Maria` ≠ `maria`.*  
-
-📌 **Resumo:** Charset = quais letras/símbolos posso armazenar.  
-Collate = como o banco compara e ordena essas letras/símbolos.
 
 ---
 
-## 3. Criando Tabelas
+## 3. Criando Tabelas com Comentários Didáticos
 
-### Exemplo:
+### 3.1 Tabela `usuario`
 
 ```sql
 CREATE TABLE usuario (
-  id_usuario INT AUTO_INCREMENT,
-  nome       VARCHAR(100) NOT NULL,
-  email      VARCHAR(100) NOT NULL UNIQUE,
-  senha      VARCHAR(255) NOT NULL,
-  PRIMARY KEY (id_usuario)
+    id_usuario INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, -- PK: identifica cada usuário
+    nome VARCHAR(100) NOT NULL,                         -- nome do usuário (obrigatório)
+    email VARCHAR(100) UNIQUE NOT NULL,                 -- email único (não pode repetir)
+    senha VARCHAR(255) NOT NULL                         -- senha criptografada (obrigatório)
+) ENGINE=InnoDB;                                       -- Motor que suporta FK e transações
+```
+
+---
+
+### 3.2 Tabela `perfil`
+
+```sql
+CREATE TABLE perfil (
+    id_perfil INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, -- PK: identifica cada perfil
+    id_usuario INT UNSIGNED NOT NULL,                  -- FK: vincula perfil ao usuário
+    nome_perfil VARCHAR(50) NOT NULL,                  -- nome do perfil
+    idioma VARCHAR(20) DEFAULT 'pt-BR',                -- idioma padrão do perfil
+    controle_parental BOOLEAN DEFAULT FALSE,           -- controle parental (true/false)
+    CONSTRAINT fk_perfil_usuario
+        FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
+        ON DELETE CASCADE                               -- se usuário for apagado, perfis também
+        ON UPDATE CASCADE                               -- se id_usuario mudar, atualiza aqui
 ) ENGINE=InnoDB;
 ```
 
-### 🔎 Explicando cada parte:
-- **id_usuario INT AUTO_INCREMENT**  
-  - `INT` → número inteiro.  
-  - `AUTO_INCREMENT` → gera números automáticos (1, 2, 3…).  
-  - Usado para **identificar cada registro** sem repetição.  
-
-- **VARCHAR(100)**  
-  - Texto de até 100 caracteres.  
-  - Exemplo: nome, email.  
-
-- **NOT NULL**  
-  - Obriga o campo a ter valor.  
-  - Exemplo: não posso cadastrar um usuário sem nome.  
-
-- **UNIQUE**  
-  - Não permite valores repetidos.  
-  - Exemplo: dois usuários não podem ter o mesmo email.  
-
-- **PRIMARY KEY**  
-  - Identificador único da tabela.  
-  - Exemplo: `id_usuario` diferencia cada pessoa.  
-
-- **ENGINE=InnoDB**  
-  - Define como a tabela vai funcionar dentro do MySQL.  
-  - `InnoDB` é o motor mais usado porque suporta **transações**, **chaves estrangeiras (FK)** e **integridade dos dados**.  
-  - Outros engines existem (como MyISAM), mas são mais limitados.  
-
-📌 **Resumo:** InnoDB = garante segurança e relacionamentos no banco.
-
 ---
 
-## 4. O que é CONSTRAINT?
-**Constraint** = **restrição** que define regras de integridade no banco.  
-Elas **garantem que os dados estejam corretos**.  
-
-Tipos de constraints:
-- **PRIMARY KEY** → chave primária (identidade única).  
-- **FOREIGN KEY** → chave estrangeira (ligação entre tabelas).  
-- **UNIQUE** → não permite duplicados.  
-- **NOT NULL** → não pode ser vazio.  
-- **DEFAULT** → valor padrão quando nada for informado.  
-- **CHECK** → valida uma regra lógica (ex: nota entre 1 e 5).  
-
-Exemplo:
+### 3.3 Tabela `genero`
 
 ```sql
-CONSTRAINT fk_perfil_usuario
-  FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
-  ON DELETE CASCADE
-  ON UPDATE CASCADE
+CREATE TABLE genero (
+    id_genero INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, -- PK: identifica cada gênero
+    nome VARCHAR(50) NOT NULL                           -- nome do gênero
+) ENGINE=InnoDB;
 ```
 
 ---
 
-## 5. Chaves Estrangeiras (FOREIGN KEY)
-A **Foreign Key (FK)** cria uma ligação entre duas tabelas.  
-👉 É como dizer: *“esse perfil pertence a um usuário”*.
+### 3.4 Tabela `filme`
 
-### Exemplo:
 ```sql
-CREATE TABLE perfil (
-  id_perfil INT AUTO_INCREMENT PRIMARY KEY,
-  id_usuario INT NOT NULL,
-  nome_perfil VARCHAR(50) NOT NULL,
-  CONSTRAINT fk_perfil_usuario
-    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE
-);
+CREATE TABLE filme (
+    id_filme INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, -- PK: identifica cada filme
+    titulo VARCHAR(150) NOT NULL,                     -- título do filme
+    ano INT,                                          -- ano de lançamento
+    duracao INT,                                      -- duração em minutos
+    id_genero INT UNSIGNED,                           -- FK: gênero do filme
+    FOREIGN KEY (id_genero) REFERENCES genero(id_genero)
+        ON DELETE SET NULL                            -- se gênero apagado, filme fica sem gênero
+        ON UPDATE CASCADE                             -- se id_genero mudar, atualiza aqui
+) ENGINE=InnoDB;
 ```
 
 ---
 
-## 6. ON DELETE / ON UPDATE
-Essas opções definem **o que acontece quando a linha relacionada muda ou é apagada**.
+### 3.5 Tabela `avaliacao`
 
-### 🔎 Opções:
-- **CASCADE** → a ação se repete na tabela filha.  
-  - Se apagar o usuário, apaga todos os perfis dele.  
-- **SET NULL** → a FK vira NULL.  
-  - Se apagar o gênero, o filme fica sem gênero (NULL).  
-- **RESTRICT / NO ACTION** → impede a ação se houver dependentes.  
-  - Se tentar apagar um usuário que tem perfil, o MySQL não deixa.  
-
-📌 **Resumo:**  
-- CASCADE = filho morre junto com o pai.  
-- SET NULL = filho fica órfão (mas continua existindo).  
-- RESTRICT = o pai não pode ser apagado se tem filhos.  
+```sql
+CREATE TABLE avaliacao (
+    id_perfil INT UNSIGNED NOT NULL,   -- FK: perfil que avaliou
+    id_filme INT UNSIGNED NOT NULL,    -- FK: filme avaliado
+    nota TINYINT UNSIGNED NOT NULL,    -- nota de 1 a 5
+    comentario TEXT,                   -- comentário opcional
+    PRIMARY KEY (id_perfil, id_filme), -- PK composta (N:N)
+    FOREIGN KEY (id_perfil) REFERENCES perfil(id_perfil)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (id_filme) REFERENCES filme(id_filme)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CHECK (nota BETWEEN 1 AND 5)       -- valida que nota está entre 1 e 5
+) ENGINE=InnoDB;
+```
 
 ---
 
-## 7. ALTER TABLE
-Serve para **modificar tabelas já existentes**.
-
-Exemplo:
+## 4. Alterando Tabelas (ALTER TABLE)
 
 ```sql
--- Adicionar uma coluna
+-- Adicionar coluna
 ALTER TABLE usuario
-  ADD COLUMN ativo BOOLEAN DEFAULT TRUE;
+  ADD COLUMN ativo BOOLEAN DEFAULT TRUE; -- campo para soft delete
 
--- Alterar tipo de uma coluna
+-- Alterar tipo de coluna
 ALTER TABLE filme
   MODIFY titulo VARCHAR(180) NOT NULL;
 
--- Criar índice (ajuda em consultas rápidas)
+-- Criar índice para consultas rápidas
 CREATE INDEX ix_filme_titulo ON filme(titulo);
 ```
 
 ---
 
-## 8. DROP
-Serve para **apagar** banco, tabela ou objeto.
+## 5. Apagando Objetos (DROP)
 
-Exemplo:
 ```sql
-DROP TABLE avaliacao;
-DROP DATABASE netflix_aula;
+DROP TABLE avaliacao;       -- apaga a tabela avaliacao
+DROP DATABASE netflix_db;   -- apaga o banco inteiro
 ```
 
-⚠️ **Cuidado!** DROP apaga tudo definitivamente.
+⚠️ **Atenção:** DROP apaga tudo permanentemente!
 
 ---
 
-## 9. CHECK
-Garante que os dados sigam uma regra.  
-⚠️ Funciona apenas no MySQL 8.0.16 ou superior.
+## 6. Resumão dos Conceitos
 
-Exemplo:
-```sql
-CREATE TABLE avaliacao (
-  id_perfil INT,
-  id_filme INT,
-  nota TINYINT,
-  CHECK (nota BETWEEN 1 AND 5)
-);
-```
-
-📌 Assim, nunca será possível salvar nota 0 ou 6.
+| Conceito        | Significado                                 | Exemplo                                |
+| --------------- | ------------------------------------------- | -------------------------------------- |
+| ENGINE=InnoDB   | Motor da tabela, suporta FK e transações    | `ENGINE=InnoDB`                        |
+| CONSTRAINT      | Restrição para manter integridade           | `PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE` |
+| COLLATE         | Define regras de comparação de textos       | `utf8mb4_0900_ai_ci`                   |
+| CASCADE         | Propaga ação de pai para filho              | `ON DELETE CASCADE`                    |
+| SET NULL        | Deixa FK nula se pai for apagado            | `ON DELETE SET NULL`                   |
+| RESTRICT        | Impede apagar/alterar se houver dependentes | `ON DELETE RESTRICT`                   |
+| DEFAULT         | Valor padrão para coluna                    | `idioma DEFAULT 'pt-BR'`               |
+| AUTO\_INCREMENT | Gera valores automáticos para PK            | `id_usuario INT AUTO_INCREMENT`        |
 
 ---
 
-## 10. Resumão dos conceitos
+## 7. Encerrando
 
-| Conceito       | Significado                                                                 | Exemplo |
-|----------------|-----------------------------------------------------------------------------|---------|
-| ENGINE=InnoDB  | Motor da tabela, suporta transações e FK                                    | `CREATE TABLE ... ENGINE=InnoDB;` |
-| CONSTRAINT     | Restrição para garantir integridade                                          | `PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE` |
-| COLLATE        | Como o banco compara/ordena textos                                          | `utf8mb4_0900_ai_ci` |
-| CASCADE        | Propaga ação (delete/update) da tabela pai para a filha                     | `ON DELETE CASCADE` |
-| SET NULL       | Deixa o campo da FK nulo quando o pai é apagado                             | `ON DELETE SET NULL` |
-| RESTRICT       | Impede apagar/alterar se existir dependentes                                | `ON DELETE RESTRICT` |
-| DEFAULT        | Define valor automático caso não seja informado                             | `idioma DEFAULT 'pt-BR'` |
-| AUTO_INCREMENT | Gera valores automáticos para PK                                            | `id_usuario INT AUTO_INCREMENT` |
+* DDL cria a **estrutura do banco**.
+* Constraints garantem que os dados fiquem **corretos e confiáveis**.
+* ENGINE, Charset e Collation garantem **compatibilidade e segurança**.
+* ON DELETE/UPDATE define o **comportamento dos relacionamentos**.
 
----
+> Agora você já consegue **pegar um DER e transformar em tabelas reais no MySQL**, com todas as regras de integridade aplicadas.
 
-## 🎯 Encerrando
-- DDL cria a **estrutura** do banco.  
-- Constraints mantêm os dados **corretos e confiáveis**.  
-- ENGINE, Charset e Collation garantem **compatibilidade e segurança**.  
-- ON DELETE/UPDATE define **o comportamento dos relacionamentos**.  
-
-👉 Agora você já consegue **pegar um DER e transformá-lo em tabelas reais no MySQL**.
